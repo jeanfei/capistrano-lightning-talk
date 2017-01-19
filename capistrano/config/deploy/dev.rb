@@ -12,6 +12,11 @@ set :deploy_to, '/var/www/dev.capistrano-lightning-talk'
 set :branch, ENV['BRANCH'] || "develop"
 
 
+# Hook Capistrano deploy:updated task.
+namespace :deploy do
+  # Replace robots.txt to disallow robots indexing.
+  after :updated, 'app:security:disallow_robots'
+end
 
 # role-based syntax
 # ==================
