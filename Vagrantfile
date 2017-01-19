@@ -36,25 +36,30 @@ Vagrant.configure("2") do |config|
   # config.vm.network "public_network"
 
   # Forward ssh agent.
-  # config.ssh.forward_agent = true
-  # config.ssh.forward_x11 = true
+  config.ssh.forward_agent = true
+  config.ssh.forward_x11 = true
 
   # Copy ssh local files to the guest.
   if File.exists?(File.join(Dir.home, ".ssh/id_rsa"))
-      config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
+    config.vm.provision "file", source: "~/.ssh/id_rsa", destination: "/home/vagrant/.ssh/id_rsa"
   end
 
   if File.exists?(File.join(Dir.home, ".ssh/id_rsa.pub"))
-      config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
-      config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/authorized_keys"
+    config.vm.provision "file", source: "~/.ssh/id_rsa.pub", destination: "/home/vagrant/.ssh/id_rsa.pub"
+    config.vm.provision "shell" do |s|
+      id_rsa_pub = File.readlines("#{Dir.home}/.ssh/id_rsa.pub").first.strip
+      s.inline = <<-SHELL
+        echo #{id_rsa_pub} >> /home/vagrant/.ssh/authorized_keys
+      SHELL
+    end
   end
 
   if File.exists?(File.join(Dir.home, ".ssh/config"))
-      config.vm.provision "file", source: "~/.ssh/config", destination: "/home/vagrant/.ssh/config"
+    config.vm.provision "file", source: "~/.ssh/config", destination: "/home/vagrant/.ssh/config"
   end
 
   if File.exists?(File.join(Dir.home, ".ssh/known_hosts"))
-      config.vm.provision "file", source: "~/.ssh/known_hosts", destination: "/home/vagrant/.ssh/known_hosts"
+    config.vm.provision "file", source: "~/.ssh/known_hosts", destination: "/home/vagrant/.ssh/known_hosts"
   end
 
   config.vm.provision "file", source: "provisioning/etc/apache2/sites-available/dev.capistrano-lightning-talk.conf", destination: "/tmp/provisioning/etc/apache2/sites-available/dev.capistrano-lightning-talk.conf"
@@ -91,8 +96,12 @@ Vagrant.configure("2") do |config|
   # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
   # documentation for more information about their specific syntax and use.
   config.vm.provision "shell", inline: <<-SHELL
+    apt-get update -y
+    # Problem with grub-pc with apt-get upgrade -y : @see https://github.com/chef/bento/issues/661#issuecomment-248136601
+    DEBIAN_FRONTEND=noninteractive apt-get -y -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" upgrade
+
     # Install apache2.
-    apt-get install -qq -y apache2
+    apt-get install -y apache2
 
     # Change owner as vagrant instead www-data for demo.
     chown -R vagrant:vagrant /var/www
