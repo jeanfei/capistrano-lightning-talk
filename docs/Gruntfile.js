@@ -109,7 +109,7 @@ module.exports = function(grunt) {
 				'index.html',
 				'css/**',
 				'js/**',
-				'lib/**',
+				'libs/**',
 				'images/**',
 				'plugin/**',
 				'**.md'
@@ -141,7 +141,7 @@ module.exports = function(grunt) {
 		},
 
 		retire: {
-			js: ['js/reveal.js', 'lib/js/*.js', 'plugin/**/*.js'],
+			js: ['js/reveal.js', 'libs/js/*.js', 'plugin/**/*.js'],
 			node: ['.'],
 			options: {}
 		}

@@ -337,7 +337,7 @@ Reveal.js doesn't _rely_ on any third party scripts to work but a few optional l
 Reveal.initialize({
 	dependencies: [
 		// Cross-browser shim that fully implements classList - https://github.com/eligrey/classList.js/
-		{ src: 'lib/js/classList.js', condition: function() { return !document.body.classList; } },
+		{ src: 'libs/js/classList.js', condition: function() { return !document.body.classList; } },
 
 		// Interpret Markdown in <section> elements
 		{ src: 'plugin/markdown/marked.js', condition: function() { return !!document.querySelector( '[data-markdown]' ); } },
@@ -1160,7 +1160,7 @@ Some reveal.js features, like external Markdown and speaker notes, require that 
 - **css/** Core styles without which the project does not function
 - **js/** Like above but for JavaScript
 - **plugin/** Components that have been developed as extensions to reveal.js
-- **lib/** All other third party assets (JavaScript, CSS, fonts)
+- **libs/** All other third party assets (JavaScript, CSS, fonts)
 
 
 ## License
