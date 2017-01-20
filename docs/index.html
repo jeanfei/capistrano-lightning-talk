@@ -1,0 +1,214 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+		<title>Lightning talk - Capistrano</title>
+
+		<link rel="stylesheet" href="css/reveal.css">
+		<link rel="stylesheet" href="css/theme/black.css">
+
+		<!-- Theme used for syntax highlighting of code -->
+		<link rel="stylesheet" href="libs/css/zenburn.css">
+
+		<!-- Printing and PDF exports -->
+		<script>
+			var link = document.createElement( 'link' );
+			link.rel = 'stylesheet';
+			link.type = 'text/css';
+			link.href = window.location.search.match( /print-pdf/gi ) ? 'css/print/pdf.css' : 'css/print/paper.css';
+			document.getElementsByTagName( 'head' )[0].appendChild( link );
+		</script>
+	</head>
+	<body>
+		<div class="reveal">
+			<div class="slides">
+				<section>
+					<h1>Capistrano</h1>
+					<h3>A deployment automation tool</h3>
+					<p>
+						<small>Lightning talk by <a href="https://www.linkedin.com/in/jeanfei">Jean-Fei Taing</a> / <a href="https://twitter.com/jeanfei">@jeanfei</a> - 20/01/2017</small>
+					</p>
+				</section>
+
+				<section>
+					<h2>Qu'est-ce que Capistrano ?</h2>
+					<ul>
+						<li>Outil qui permet d'exécuter des tâches sur des serveurs via ssh</li>
+						<li>Principalement utilisé pour déployer des applications web</li>
+						<li>Développé en Ruby</li>
+					</ul>
+				</section>
+
+				<section>
+					<h2>Déploiement d'une application web</h2>
+					<ol>
+						<li>Se connecter aux serveurs</li>
+						<li>Déployer une nouvelle version de l'application</li>
+						<li>Executer des tâches pour builder la nouvelle version du projet (ex: composer, npm, modifications en base de données, clear-cache)</li>
+					</ol>
+				</section>
+
+				<section>
+					<h2>Méthodes de déploiement</h2>
+					<ul>
+						<li>FTP / SFTP / Rsync <em class="fragment"> : Impossible de builder</em></li>
+						<li>Exécution des tâches directement sur le serveur <em class="fragment"> : Problématiques multi-serveurs</em></li>
+						<li>Scripter l'ensemble du workflow de déploiement <em class="fragment"> : Long et complexe</em></li>
+					</ul>
+				</section>
+
+				<section data-transition-speed="slow" data-transition="fade-in">
+					<h1>Capistrano</h1>
+				</section>
+
+				<section>
+					<h2>Capistrano flow</h2>
+					<p>Deploy Flow
+						<img data-src="img/capistrano-deploy-flow.png" alt="capistrano deploy flow">
+					</p>
+					<p>Rollback Flow
+						<img data-src="img/capistrano-rollback-flow.png" alt="capistrano rollback flow">
+					</p>
+				</section>
+
+				<section>
+					<h2>Capistrano structure</h2>
+					<!--<img data-src="img/capistrano-structure.png" alt="capistrano structure">-->
+					<pre><code class="hljs" data-trim>
+set :deploy_to, '/var/www/my_app_name'
+
+├── current -> /var/www/my_app_name/releases/20170119235721/
+├── releases
+│   ├── 20170119205721
+│   ├── 20170119233430
+│   ├── 20170119234608
+│   ├── 20170119234808
+│   └── 20170119235721
+├── repo
+│   └── VCS related data
+├── revisions.log
+└── shared
+    └── linked_files and linked_dirs
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Getting started</h2>
+					<pre><code class="hljs" data-trim>
+# Création de 2 environnements
+$ bundle exec cap install STAGES=dev,prod
+
+├── Capfile
+└── config
+    ├── deploy
+    │   ├── dev.rb  # Configurations spécifiques à la dev
+    │   └── prod.rb # Configurations spécifiques à la prod
+    └── deploy.rb   # Configurations générales
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>config/deploy.rb</h2>
+					<pre><code class="hljs">
+
+set :application, "capistrano-lightning-talk"
+set :repo_url, "git@github.com:jeanfei/capistrano-lightning-talk.git"
+
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Configurations par environnement</h2>
+					<p>config/deploy/dev.rb</p>
+					<pre><code class="hljs" data-trim>
+server "dev.capistrano-lightning-talk", user: "vagrant", roles: %w{app web}
+set :deploy_to, '/var/www/dev.capistrano-lightning-talk'
+set :branch, 'develop'
+					</code></pre>
+
+					<p>config/deploy/prod.rb</p>
+					<pre><code class="hljs" data-trim>
+server "capistrano-lightning-talk", user: "vagrant", roles: %w{app web}
+set :deploy_to, '/var/www/capistrano-lightning-talk'
+set :branch, 'master'
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Démo</h2>
+					<pre><code class="hljs" data-trim>
+$ bundle exec cap dev deploy
+$ bundle exec cap prod deploy
+$ bundle exec cap prod deploy:rollback
+					</code></pre>
+				</section>
+
+				<section>
+					<h2>Custom task</h2>
+					<pre><code class="hljs" data-trim>
+# libs/capistrano/tasks/app.rake
+namespace :app do
+    namespace :security do
+        desc 'Override robots.txt file'
+        task :disallow_robots do
+            on roles(:web) do
+                upload! "templates/robots.txt", "#{release_path}/src/web/robots.txt"
+            end
+        end
+    end
+end
+					</code></pre>
+					<pre><code class="hljs" data-trim>
+# config/deploy/dev.rb
+namespace :deploy do
+  # Replace robots.txt to disallow robots indexing.
+  after :updated, 'app:security:disallow_robots'
+end
+					</code></pre>
+				</section>
+
+				<section style="text-align: left;">
+					<h2>Ressources</h2>
+					<ul>
+						<li><a href="https://github.com/jeanfei/capistrano-lightning-talk">Github jeanfei/capistrano-lightning-talk (VM and example scripts)</a></li>
+						<li><a href="http://capistranorb.com/documentation/getting-started/structure/">Capistrano structure</a></li>
+						<li><a href="http://capistranorb.com/documentation/getting-started/flow/">Capistrano flow</a></li>
+						<li><a href="https://github.com/capistrano/capistrano/blob/master/README.md#quick-start">Capistrano Quick start</a></li>
+					</ul>
+				</section>
+
+				<section style="text-align: left;">
+					<h1>Questions ?</h1>
+				</section>
+
+				<section>
+					<h1>Capistrano</h1>
+					<h3>A deployment automation tool</h3>
+					<p>
+						<small>Lightning talk by <a href="https://www.linkedin.com/in/jeanfei">Jean-Fei Taing</a> / <a href="https://twitter.com/jeanfei">@jeanfei</a> - 20/01/2017</small>
+					</p>
+				</section>
+			</div>
+		</div>
+
+		<script src="libs/js/head.min.js"></script>
+		<script src="js/reveal.js"></script>
+
+		<script>
+			// More info https://github.com/hakimel/reveal.js#configuration
+			Reveal.initialize({
+				history: true,
+
+				// More info https://github.com/hakimel/reveal.js#dependencies
+				dependencies: [
+					{ src: 'plugin/markdown/marked.js' },
+					{ src: 'plugin/markdown/markdown.js' },
+					{ src: 'plugin/notes/notes.js', async: true },
+					{ src: 'plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
+				]
+			});
+		</script>
+	</body>
+</html>
